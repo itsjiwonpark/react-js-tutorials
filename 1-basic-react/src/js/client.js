@@ -17,6 +17,19 @@ const userReducer = (state = {}, action) => {
 
 const tweetsReducer = (state = [], action) => {
   // return state; 이렇게 아무것도 안리턴하면 error뜸
+  switch (action.type) {
+    case "ADD_TWEET": {
+      state = [...state, action.payload];
+      break;
+    }
+    case "DELETE_TWEET": {
+      state = [
+        ...state.slice(0, action.payload),
+        ...state.slice(action.payload + 1)
+      ];
+      break;
+    }
+  }
   return state;
 };
 
@@ -36,3 +49,8 @@ store.subscribe(() => {
 store.dispatch({ type: "CHANGE_NAME", payload: "Will" });
 console.log("then what happens now");
 store.dispatch({ type: "CHANGE_AGE", payload: "35" });
+store.dispatch({ type: "ADD_TWEET", payload: "new tweet1" });
+store.dispatch({ type: "ADD_TWEET", payload: "new tweet2" });
+store.dispatch({ type: "ADD_TWEET", payload: "new tweet3" });
+store.dispatch({ type: "DELETE_TWEET", payload: 2 });
+store.dispatch({ type: "DELETE_TWEET", payload: 0 });
