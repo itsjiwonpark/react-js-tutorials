@@ -1,42 +1,48 @@
 import { applyMiddleware, createStore } from "redux";
+import axios from "axios";
+import logger from "redux-logger";
+import thunk from "redux-thunk";
 
-const reducer = (initialState = 0, action) => {
-  if (action.type === "INC") {
-    return ++initialState;
-  } else if (action.type === "DEC") {
-    return --initialState;
-  } else if (action.type === "E") {
-    throw new Error("AHHHHHH!!!!!");
+const initialState = {
+  fetching: false,
+  fetched: false,
+  users: [],
+  err: null
+};
+
+const reducer = (state = initialState, action) => {
+  switch (action.type) {
+    case "FETCH_USERS_START": {
+      return { ...state, fetching: true };
+    }
+    case "RECEIVE_USERS": {
+      return {
+        ...state,
+        fetching: false,
+        fetched: true,
+        users: action.payload
+      };
+    }
+    case "FETCH_USERS_ERROR": {
+      return { ...state, fetching: false, err: action.payload };
+    }
   }
-  return initialState;
+  return state;
 };
 
-const logger = store => next => action => {
-  console.log("action fired", action);
-  //  action.type = "DEC"; 중간에 수정도 가능함
-  next(action);
-};
+const middleware = applyMiddleware(thunk, logger);
+const store = createStore(reducer, middleware);
 
-const error = store => next => action => {
-  try {
-    next(action);
-  } catch (e) {
-    console.log("AAHHHH!!", e);
-  }
-};
-
-const middleware = applyMiddleware(logger, error);
-
-const store = createStore(reducer, 1, middleware);
-
-store.subscribe(() => {
-  console.log("store changed", store.getState());
+store.dispatch(dispatch => {
+  dispatch({ type: "FETCH_USERS_START" });
+  axios
+    .get("http://rest.learncode.academy/api/wstern/users")
+    .then(response => {
+      dispatch({ type: "RECEIVE_USERS", payload: response.data });
+    })
+    .catch(err => {
+      dispatch({ type: "FETCH_USERS_ERROR", payload: err });
+    });
 });
 
-store.dispatch({ type: "INC" });
-store.dispatch({ type: "INC" });
-store.dispatch({ type: "INC" });
-store.dispatch({ type: "DEC" });
-store.dispatch({ type: "DEC" });
-store.dispatch({ type: "DEC" });
-store.dispatch({ type: "E" });
+// dispatch를 받는 함수를 dispatch하는 것이 thunk다
