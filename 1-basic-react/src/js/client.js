@@ -2,6 +2,7 @@ import { applyMiddleware, createStore } from "redux";
 import axios from "axios";
 import logger from "redux-logger";
 import thunk from "redux-thunk";
+import promise from "redux-promise-middleware";
 
 const initialState = {
   fetching: false,
@@ -12,37 +13,32 @@ const initialState = {
 
 const reducer = (state = initialState, action) => {
   switch (action.type) {
-    case "FETCH_USERS_START": {
+    case "FETCH_USERS_PENDING": {
       return { ...state, fetching: true };
     }
-    case "RECEIVE_USERS": {
+    case "FETCH_USERS_FULFILLED": {
       return {
         ...state,
         fetching: false,
         fetched: true,
-        users: action.payload
+        users: action.payload.data
       };
     }
-    case "FETCH_USERS_ERROR": {
+    case "FETCH_USERS_REJECTED": {
       return { ...state, fetching: false, err: action.payload };
     }
   }
   return state;
 };
 
-const middleware = applyMiddleware(thunk, logger);
+const middleware = applyMiddleware(promise, thunk, logger);
+// promise middleware를 thunk 대신에 쓰거나 덧붙여 쓰거나
 const store = createStore(reducer, middleware);
 
-store.dispatch(dispatch => {
-  dispatch({ type: "FETCH_USERS_START" });
-  axios
-    .get("http://rest.learncode.academy/api/wstern/users")
-    .then(response => {
-      dispatch({ type: "RECEIVE_USERS", payload: response.data });
-    })
-    .catch(err => {
-      dispatch({ type: "FETCH_USERS_ERROR", payload: err });
-    });
+store.dispatch({
+  type: "FETCH_USERS",
+  payload: axios.get("http://rest.learncowefde.academy/api/wstern/users")
 });
 
-// dispatch를 받는 함수를 dispatch하는 것이 thunk다
+// 자동으로 "FETCH_USERS_PENDING"을 부르고 그 다음에는 "FETCH_USERS_FULFILLED", 또는 "FETCH_USERS_REJECTED"를 부른다.
+// promise를 많이 쓸 거면 정말 깔끔함
